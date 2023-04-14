@@ -477,7 +477,7 @@ function ScanLine(buf, pol, r, g, b)
         ------------------------------
         for k = 1, #i, 2 do
             for pixel = i[k], i[k+1], 1 do
-                SetPixel(buf, pixel, y, 255,255,255)
+                SetPixel(buf, pixel, y, r,g,b)
             end
         end
     end
