@@ -86,6 +86,30 @@ function GetPixel(buf, x, y)
     Ba = math.ceil(Ba*255)
     return Ra, Ga, Ba
 end
+
+function GetPixelText(textura, x, y)
+
+    if x > 1 then
+        x = 1
+    elseif x < 0 then
+        x = 0
+    end
+    if y > 1 then
+        y = 1
+    elseif y < 0 then
+        y = 0
+    end
+
+
+    x = math.ceil(x * (textura:getWidth()-1))
+    y = math.ceil(y * (textura:getHeight()-1))
+
+    local Ra, Ga, Ba, Aa = textura:getPixel(x, y)
+    Ra = math.ceil(Ra*255)
+    Ga = math.ceil(Ga*255)
+    Ba = math.ceil(Ba*255)
+    return Ra, Ga, Ba
+end
 -----------------------------------------------------------------------------------------------
 --funcoes Retas
 --funcao para desenhar uma linha usando o algoritmo DDA
@@ -333,9 +357,6 @@ function FloodFill(buf, x, y, oldR, oldG, oldB, fillR, fillG, fillB)
             return
          end
          local Ra, Ga, Ba = GetPixel(buf, n[1], n[2])
-         Ra = math.ceil(Ra*255)
-         Ga = math.ceil(Ga*255)
-         Ba = math.ceil(Ba*255)
         if Ra == oldR and Ga == oldG and Ba == oldB then
              SetPixel(buf,  n[1], n[2], fillR, fillG, fillB)
              Q:Push({n[1]-1,n[2]})
@@ -356,9 +377,6 @@ function BoundaryFill(buf, x, y, borderR, borderG, borderB, fillR, fillG, fillB)
              return
           end
           local Ra, Ga, Ba = GetPixel(buf, n[1], n[2])
-          --Ra = math.ceil(Ra*255)
-          --Ga = math.ceil(Ga*255)
-          --Ba = math.ceil(Ba*255)
          if (Ra ~= borderR or Ga ~= borderG or Ba ~= borderB) and (Ra ~= fillR or Ga ~= fillG or Ba ~= fillB) then
               SetPixel(buf,  n[1], n[2], fillR, fillG, fillB)
               Q:Push({n[1]-1,n[2]})
@@ -399,7 +417,7 @@ function Intersecao(scan, seg)
 
     --segmento horizontal, sem intersecao
     if(yi == yf) then
-        return -1
+        return -1, 0
     end
 
     --troca para garantir ponto inicial em cima
@@ -417,11 +435,11 @@ function Intersecao(scan, seg)
 
     --calcula x
     if t > 0 and t <= 1 then
-        return math.ceil(xi + t*(xf - xi))
+        return math.ceil(xi + t*(xf - xi)), t
     end
 
     --sem Intersecao
-    return -1
+    return -1, 0
 end
 
 function GetYmin(tab)
@@ -444,7 +462,7 @@ function GetYmax(tab)
     return max
 end
 
-function ScanLine(buf, pol, r, g, b)
+function ScanLineColor(buf, pol, r, g, b)
     local ymin = GetYmin(pol)--ok
     local ymax = GetYmax(pol)--ok
 
@@ -484,6 +502,185 @@ function ScanLine(buf, pol, r, g, b)
             end
             for pixel = x1, x2, 1 do
                 SetPixel(buf, pixel, y, r,g,b)
+            end
+        end
+    end
+end
+
+function ScanLinePontos(buf, pol, col)
+    if #pol ~= #col then
+        return
+    end
+    local ymin = GetYmin(pol)--ok
+    local ymax = GetYmax(pol)--ok
+
+    for y = ymin, ymax do
+        local i = {}
+        local cor = {}
+        local pix = pol[1][1]
+        local piy = pol[1][2]
+        ----------------------
+        local ri  = col[1][1]
+        local gi  = col[1][2]
+        local bi  = col[1][3]
+        ----------------------
+        for p = 2, #pol do
+            local pfx = pol[p][1]
+            local pfy = pol[p][2]
+            ----------------------
+            local rf  = col[p][1]
+            local gf  = col[p][2]
+            local bf  = col[p][3]
+            ----------------------
+            local seg = {{pix, piy},{pfx,pfy}}
+            local xi, t = Intersecao(y,seg)
+            --------------------------------
+            local rk = math.ceil(t*(rf-ri) + ri)
+            local gk = math.ceil(t*(gf-gi) + gi)
+            local bk = math.ceil(t*(bf-bi) + bi)
+            --------------------------------
+            if xi >=0 then
+                table.insert(i, xi)
+                table.insert(cor,{rk,gk,bk})
+            end
+            pix = pfx
+            piy = pfy
+            -----------
+            ri  = rf 
+            gi  = gf
+            bi  = bf 
+        end
+        local pfx = pol[1][1]
+        local pfy = pol[1][2]
+        ---------------------------
+        local rf  = col[1][1]
+        local gf  = col[1][2]
+        local bf  = col[1][3]
+        ------------------------------------
+        local seg = {{pix, piy},{pfx,pfy}}
+        local xi, t = Intersecao(y,seg)
+        ------------------------------------
+        local rk = math.ceil(t*(ri-rf) + rf)
+        local gk = math.ceil(t*(gi-gf) + gf)
+        local bk = math.ceil(t*(bi-bf) + bf)
+        -------------------------------------
+        if xi >=0 then
+            table.insert(i, xi)
+            table.insert(cor,{rk,gk,bk})
+        end
+        ------------------------------
+        for k = 1, #i, 2 do
+            local x1 = i[k]
+            local x2 = i[k+1]
+            local c1 = cor[k]
+            local c2 = cor[k+1]
+            if x1 > x2 then
+                local aux = x1
+                x1        = x2
+                x2        = aux
+                aux       = c1
+                c1        = c2
+                c2        = aux
+            end
+            for xk = x1, x2, 1 do
+                local p  =  (xk - x1)/(x2-x1)
+                local rk = p*(c2[1] - c1[1]) + c1[1]
+                local gk = p*(c2[2] - c1[2]) + c1[2]
+                local bk = p*(c2[3] - c1[3]) + c1[3]
+                SetPixel(buf, xk, y, rk, gk, bk)
+            end
+        end
+    end
+end
+
+----------------------------------------------
+---Trabalhando Com Texturas
+function IntersecaoT(scan, seg)
+
+    local pi = seg[1]
+    local pf = seg[2]
+    local y = scan
+
+    --segmento horizontal, sem intersecao
+    if(pi[2] == pf[2]) then
+        return {-1, 0, 0,0}
+    end
+
+    --troca para garantir ponto inicial em cima
+    if pi[2] > pf[2] then
+        local aux = pi
+        pi = pf
+        pf = aux
+    end
+    --calcula o t
+    local t = (y - pi[2])/(pf[2] - pi[2])
+
+    --calcula x
+    if t > 0 and t <= 1 then
+        local x = math.ceil(pi[1] + t*(pf[1] - pi[1]))
+        local tx = pi[3] + t*(pf[3] - pi[3])
+        local ty = pi[4] + t*(pf[4] - pi[4])
+        local p  = {x, y, tx, ty}
+        return p
+    end
+
+    --sem Intersecao
+    return {-1, 0, 0, 0}
+end
+
+--Nearest
+function ScanLineT(buf, pol, tex)
+
+    local ymin = GetYmin(pol)--ok
+    local ymax = GetYmax(pol)--ok
+
+    for y = ymin, ymax do
+        local i = {}
+        local pi = pol[1]
+        ----------------------
+        for p = 2, #pol do
+            local pf = pol[p]
+            ----------------------
+            local seg = {pi,pf}
+            local pint = IntersecaoT(y,seg)
+            --------------------------------
+            if pint[1] >=0 then
+                table.insert(i, pint)
+            end
+            pi = pf
+        end
+        local pf = pol[1]
+        ------------------------------------
+        local seg = {pi,pf}
+        local pint = IntersecaoT(y,seg)
+        -------------------------------------
+        if pint[1] >=0 then
+            table.insert(i, pint)
+        end
+        ------------------------------
+        for pi = 1, #i, 2 do
+            local p1 = i[pi]
+            local p2 = i[pi+1]
+
+            local x1 = p1[1]
+            local x2 = p2[1]
+
+            if x1 > x2 then
+                local aux = p1
+                p1        = p2
+                p2        = aux
+            end --if
+
+            for xk = p1[1], p2[1], 1 do
+
+                local pc = (xk-p1[1])/(p2[1] - p1[1])
+                -------------------------------------
+                local tx = p1[3] + pc*(p2[3] - p1[3])
+                local ty = p1[4] + pc*(p2[4] - p1[4])
+                -------------------------------------
+                local rk, gk, bk = GetPixelText(tex, tx, ty)
+
+                SetPixel(buf, xk, y, rk, gk, bk)
             end
         end
     end
