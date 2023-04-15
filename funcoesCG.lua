@@ -445,7 +445,6 @@ function GetYmax(tab)
 end
 
 function ScanLine(buf, pol, r, g, b)
-
     local ymin = GetYmin(pol)--ok
     local ymax = GetYmax(pol)--ok
 
@@ -476,7 +475,14 @@ function ScanLine(buf, pol, r, g, b)
         end
         ------------------------------
         for k = 1, #i, 2 do
-            for pixel = i[k], i[k+1], 1 do
+            local x1 = i[k]
+            local x2 = i[k+1]
+            if x1 > x2 then
+                local aux = x1
+                x1        = x2
+                x2        = aux
+            end
+            for pixel = x1, x2, 1 do
                 SetPixel(buf, pixel, y, r,g,b)
             end
         end
