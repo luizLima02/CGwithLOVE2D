@@ -1,5 +1,5 @@
-require "dependences"
-require "myEDD"
+require "Src/dependences"
+
 
 Stack = Pilha()
 

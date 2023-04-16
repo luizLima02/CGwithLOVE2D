@@ -1,4 +1,4 @@
-_G.cg   = require "funcoesCG"
+_G.cg   = require "Src/funcoesCG"
 
 ImagemData = CreateImage(800,800)
 Imagem = nil
@@ -9,9 +9,10 @@ Triangulo = CriaPoligono()
 
 Color = {{0,0,255},
          {0,255,0},
-         {255,0,0},
-        {0,0,0}}
+         {255,0,0}--[[,
+        {0,0,0}]]}
 
+--------------------------------------------------------
 function love.load()
     InserePonto(Quadrado,{10,10,0,0})
     InserePonto(Quadrado,{100,10,1,0})
@@ -19,7 +20,7 @@ function love.load()
     InserePonto(Quadrado,{10,100,0,1})
     ---------------------------------
     InserePonto(Triangulo,{300, 0, 0, 0})
-    InserePonto(Triangulo,{300, 0, 1, 0})
+    --InserePonto(Triangulo,{300, 0, 1, 0})
     InserePonto(Triangulo,{600, 300, 1, 1})
     InserePonto(Triangulo,{0, 300, 0, 1})
 
